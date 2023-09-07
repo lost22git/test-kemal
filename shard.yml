@@ -1,0 +1,17 @@
+name: test-kemal
+version: 0.1.0
+
+authors:
+  - lost22git <lost22git>
+
+targets:
+  test-kemal:
+    main: src/test-kemal.cr
+
+dependencies:
+  kemal:
+    github: kemalcr/kemal
+
+crystal: 1.9.2
+
+license: MIT
