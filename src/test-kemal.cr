@@ -64,6 +64,36 @@ record Result(T),
   end
 end
 
+# ------- utils --------------
+
+def map(s : S, to tt : T.class) : T forall S, T
+  {% begin %}
+    T.new(
+      {% for ivar in T.instance_vars %}
+        {% for jvar in S.instance_vars %}
+          {% if ivar.name == jvar.name %}
+            {{ ivar.name }}: s.{{ ivar.name }},
+          {% end %}
+        {% end %}
+      {% end %}
+    )
+  {% end %}
+end
+
+def merge(a : A, with b : B) forall A, B
+  {% begin %}
+    {% for ivar in A.instance_vars %}
+      {% for jvar in B.instance_vars %}
+        {% if ivar.name == jvar.name %}
+          if a.responds_to?(:{{ ivar.name }}=)
+            a.{{ ivar.name }} = b.{{ ivar.name }}
+          end
+        {% end %}
+      {% end %}
+    {% end %}
+  {% end %}
+end
+
 # ------- Fighter Router ------
 
 class Fighter
@@ -83,10 +113,6 @@ record FighterCreate,
   name : String,
   skill : Array(String) do
   include JSON::Serializable
-
-  def to_fighter : Fighter
-    Fighter.new name: @name, skill: @skill
-  end
 end
 
 record FighterEdit,
@@ -119,7 +145,7 @@ end
 post "/fighter" do |env|
   fighter_create = FighterCreate.from_json env.request.body.not_nil!
 
-  new_fighter = fighter_create.to_fighter
+  new_fighter = map fighter_create, to: Fighter
   fighters << new_fighter
 
   env.response.content_type = json_header
@@ -132,7 +158,7 @@ put "/fighter" do |env|
   found = fighters.find { |x| x.name == fighter_edit.name }
 
   unless found.nil?
-    found.skill = fighter_edit.skill
+    merge found, with: fighter_edit
     found.updated_at = Time.utc
   end
 
