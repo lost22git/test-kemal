@@ -1,8 +1,9 @@
 require "kemal"
 require "uuid"
 require "uuid/json"
+require "json"
 
-# ------- Auth ----------------
+# ------- Auth ---------------
 
 class AuthHandler < Kemal::Handler
   def call(env)
@@ -25,7 +26,7 @@ end
 
 # add_handler AuthHandler.new
 
-# ------- CORS ----------------
+# ------- CORS ---------------
 
 before_all "/*" do |env|
   env.response.headers["Access-Control-Allow-Origin"] = "*"
@@ -33,7 +34,7 @@ before_all "/*" do |env|
   env.response.headers["Access-Control-Allow-Headers"] = "*"
 end
 
-# ------- Test Router ---------
+# ------- Test Router --------
 
 get "/" do
   "hi kemal"
@@ -43,7 +44,7 @@ ws "/ws" do |ws|
   ws.send "hi ws"
 end
 
-# ------- Result Model --------
+# ------- Result Model -------
 
 record Result(T),
   data : T?,
@@ -94,20 +95,48 @@ def merge(a : A, with b : B) forall A, B
   {% end %}
 end
 
-# ------- Fighter Router ------
+# ------ ORM -----------------
 
-class Fighter
-  getter id : UUID
-  getter name : String
-  property skill : Array(String)
-  getter created_at : Time
-  property updated_at : Time?
+require "sqlite3"
+
+# NOTE: 必须在 require "granite" 前
+Granite::Connections << Granite::Adapter::Sqlite.new(name: "sqlite", url: "sqlite3://./fighter.db")
+
+require "granite"
+require "granite/adapter/sqlite"
+
+class Fighter < Granite::Base
+  connection sqlite
+  table fighter
+
+  column id : Int64, primary: true
+  # column id : UUID, primary: true, auto: false
+  column name : String
+  column skill : Array(String) = [] of String, converter: Granite::Converters::Json(Array(String), String)
+  column created_at : Time = Time.utc
+  column updated_at : Time?
+
+  validate_not_blank :name
+  validate_not_nil :created_at
 
   include JSON::Serializable
 
-  def initialize(@id = UUID.random, *, @name, @skill, @created_at = Time.utc, @updated_at = nil)
+  # def initialize(@id = UUID.random, *, @name, @skill, @created_at = Time.utc, @updated_at = nil)
+  # end
+
+  def initialize(*, @name, @skill, @created_at = Time.utc, @updated_at = nil)
   end
 end
+
+# --- 初始化数据
+fighters = [
+  Fighter.new(name: "隆", skill: ["波动拳"]),
+  Fighter.new(name: "肯", skill: ["升龙拳"]),
+]
+Fighter.clear
+Fighter.import(fighters, update_on_duplicate: true, columns: %w(name))
+
+# ------- Model --------------
 
 record FighterCreate,
   name : String,
@@ -121,14 +150,12 @@ record FighterEdit,
   include JSON::Serializable
 end
 
-fighters = [
-  Fighter.new(name: "隆", skill: ["波动拳"]),
-  Fighter.new(name: "肯", skill: ["升龙拳"]),
-]
+# ------- Fighter Router -----
 
 json_header = "application/json; charset=utf-8"
 
 get "/fighter" do |env|
+  fighters = Fighter.all
   env.response.content_type = json_header
   Result.ok(fighters).to_json
 end
@@ -136,7 +163,7 @@ end
 get "/fighter/:name" do |env|
   name = env.params.url["name"]
 
-  found = fighters.select { |x| x.name == name }
+  found = Fighter.find_by(name: name)
 
   env.response.content_type = json_header
   Result.ok(found).to_json
@@ -146,7 +173,7 @@ post "/fighter" do |env|
   fighter_create = FighterCreate.from_json env.request.body.not_nil!
 
   new_fighter = map fighter_create, to: Fighter
-  fighters << new_fighter
+  new_fighter.save!
 
   env.response.content_type = json_header
   Result.ok(new_fighter).to_json
@@ -155,11 +182,12 @@ end
 put "/fighter" do |env|
   fighter_edit = FighterEdit.from_json env.request.body.not_nil!
 
-  found = fighters.find { |x| x.name == fighter_edit.name }
+  found = Fighter.find_by(name: fighter_edit.name)
 
   unless found.nil?
     merge found, with: fighter_edit
     found.updated_at = Time.utc
+    found.save!
   end
 
   env.response.content_type = json_header
@@ -169,14 +197,17 @@ end
 delete "/fighter/:name" do |env|
   name = env.params.url["name"]
 
-  found = fighters.select { |x| x.name == name }
-  fighters = fighters.select { |x| x.name != name }
+  found = Fighter.find_by(name: name)
+
+  unless found.nil?
+    found.destroy!
+  end
 
   env.response.content_type = json_header
   Result.ok(found).to_json
 end
 
-# ------- Logging -------------
+# ------- Logging ------------
 
 {% if flag?(:release) %}
   logging false
@@ -184,7 +215,7 @@ end
   logging true
 {% end %}
 
-# ------- Server --------------
+# ------- Server -------------
 
 struct StartupInfo
   {% if flag?(:release) %}

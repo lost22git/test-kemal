@@ -11,6 +11,10 @@ targets:
 dependencies:
   kemal:
     github: kemalcr/kemal
+  granite:
+    github: amberframework/granite
+  sqlite3:
+    github: crystal-lang/crystal-sqlite3
 
 crystal: 1.9.2
 
