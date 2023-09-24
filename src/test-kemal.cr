@@ -150,9 +150,21 @@ record FighterEdit,
   include JSON::Serializable
 end
 
-# ------- Fighter Router -----
 
 json_header = "application/json; charset=utf-8"
+
+# ------ Baseline Router -----
+
+get "/baseline/text" do |env|
+  "lost"
+end
+
+get "/baseline/json" do |env|
+  env.response.content_type = json_header
+  Result.ok("lost").to_json
+end
+
+# ------- Fighter Router -----
 
 get "/fighter" do |env|
   fighters = Fighter.all
