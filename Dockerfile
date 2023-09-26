@@ -2,13 +2,12 @@ FROM crystallang/crystal:latest-alpine as builder
 
 WORKDIR /project
 
-COPY . .
-
 ARG http_proxy
 
 RUN export HTTP_PROXY=${http_proxy} && export HTTPS_PROXY=${http_proxy}
-
 RUN apk add --update --no-cache --force-overwrite sqlite-dev sqlite-static
+
+COPY . .
 
 RUN shards build --release --static --stats --time
 
