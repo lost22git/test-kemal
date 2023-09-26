@@ -15,7 +15,7 @@ TODO: Write installation instructions here
 - build docker image `test-kemal`
 
 ```shell
-docker build -t test-kemal --build-arg http_proxy=http://172.21.64.1:55556  .
+docker build -t test-kemal --build-arg http_proxy=$HTTP_PROXY  .
 ```
 
 - create docker network `mnet`
