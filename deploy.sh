@@ -2,10 +2,7 @@
 
 set -e
 
-# shards build --release --verbose
-
-docker run --rm -it -v $(pwd):/workspace -w /workspace crystallang/crystal:latest-alpine \
-    apk add sqlite && shards build --release --static
+shards build --release --verbose
 
 for i in $(seq 1 $(nproc --all)); do
   ./bin/test-kemal &
