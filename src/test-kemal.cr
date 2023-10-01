@@ -150,7 +150,6 @@ record FighterEdit,
   include JSON::Serializable
 end
 
-
 json_header = "application/json; charset=utf-8"
 
 # ------ Baseline Router -----
