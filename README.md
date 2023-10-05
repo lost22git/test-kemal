@@ -12,6 +12,8 @@ TODO: Write installation instructions here
 
 ## Usage
 
+### Docker
+
 - build docker image `test-kemal`
 
 ```shell
@@ -28,6 +30,12 @@ docker network create -o com.docker.network.bridge.name=mnet mnet
 
 ```shell
 docker run -dit --name test-kemal --net mnet -p 3000:3000/tcp test-kemal
+```
+
+### Docker compose
+
+```shell
+docker compose up -d
 ```
 
 ## Development
