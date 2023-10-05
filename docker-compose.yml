@@ -1,0 +1,16 @@
+version: "3"
+
+services:
+  test-kemal:
+    build:
+      context: .
+      args: 
+        http_proxy: ${HTTP_PROXY}
+    image: test-kemal
+    container_name: test-kemal
+    ports:
+      - "3000:3000"
+
+
+# 默认创建并使用名为 ${COMPOSE_PROJECT_NAME}_default 的 bridge 网络
+
